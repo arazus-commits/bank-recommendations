@@ -19,8 +19,8 @@ public class RecommendationController {
     }
 
     @GetMapping("/{user_id}")
-    public List<RecommendationDto> getRecommendations(@PathVariable("user_id") String userId) {
-        UUID uuid = UUID.fromString(userId);
-        return recommendationService.getRecommendations(uuid);
+    public RecommendationResponse getRecommendations(@PathVariable("user_id") UUID userId) {
+        List<RecommendationDto> recs = recommendationService.getRecommendations(userId);
+        return new RecommendationResponse(userId, recs);
     }
 }
