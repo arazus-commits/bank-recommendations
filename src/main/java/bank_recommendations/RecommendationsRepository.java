@@ -26,4 +26,35 @@ public class RecommendationsRepository {
         Double sum = jdbcTemplate.queryForObject(sql, Double.class, userId, productType, transactionType);
         return sum != null ? sum : 0.0;
     }
+
+        public long getTransactionCount(UUID userId, String productType) {
+        String sql = "SELECT COUNT(*) FROM transactions t JOIN products p ON t.product_id = p.id WHERE t.user_id = ? AND p.type = ?";
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, userId, productType);
+        return count != null ? count : 0L;
+    }
+
+    public boolean compareTransactionSum(UUID userId, String productType, String transactionType, String operator, int threshold) {
+        double sum = getSumTransactionsAmount(userId, productType, transactionType);
+        return switch (operator) {
+            case ">" -> sum > threshold;
+            case "<" -> sum < threshold;
+            case "=" -> sum == threshold;
+            case ">=" -> sum >= threshold;
+            case "<=" -> sum <= threshold;
+            default -> false;
+        };
+    }
+
+    public boolean compareDepositWithdraw(UUID userId, String productType, String operator) {
+        double deposit = getSumTransactionsAmount(userId, productType, "DEPOSIT");
+        double withdraw = getSumTransactionsAmount(userId, productType, "WITHDRAW");
+        return switch (operator) {
+            case ">" -> deposit > withdraw;
+            case "<" -> deposit < withdraw;
+            case "=" -> deposit == withdraw;
+            case ">=" -> deposit >= withdraw;
+            case "<=" -> deposit <= withdraw;
+            default -> false;
+        };
+    }
 }
