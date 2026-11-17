@@ -3,7 +3,6 @@ package bank_recommendations;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/rule")
@@ -25,9 +24,9 @@ public class RuleController {
         return ResponseEntity.ok(new RuleListResponse(ruleService.getAllRules()));
     }
 
-    @DeleteMapping("/{product_id}")
-    public ResponseEntity<Void> deleteRule(@PathVariable("product_id") UUID productId) {
-        ruleService.deleteRule(productId);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRule(@PathVariable("id") Long id) {
+        ruleService.deleteRule(id);
         return ResponseEntity.noContent().build();
     }
 

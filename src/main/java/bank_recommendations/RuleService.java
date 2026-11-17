@@ -3,7 +3,6 @@ package bank_recommendations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class RuleService {
@@ -23,7 +22,7 @@ public class RuleService {
     }
 
     @Transactional
-    public void deleteRule(UUID productId) {
-        ruleRepository.deleteByProductId(productId);
+    public void deleteRule(Long id) {
+        ruleRepository.deleteById(id);
     }
 }
