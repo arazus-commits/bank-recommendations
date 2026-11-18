@@ -19,4 +19,6 @@ public class RecommendationResponse {
     public List<RecommendationDto> getRecommendations() {
         return recommendations;
     }
+
+    
 }

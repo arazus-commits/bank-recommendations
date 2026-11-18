@@ -49,8 +49,12 @@ public class RecommendationsRepository {
         }
 
     public double getSumTransactionsAmount(UUID userId, String productType, String transactionType) {
-        String sql = "SELECT COALESCE(SUM(t.amount), 0) FROM transactions t JOIN products p ON t.product_id = p.id WHERE t.user_id = ? AND p.type = ? AND t.type = ?";
-        Double sum = jdbcTemplate.queryForObject(sql, Double.class, userId, productType, transactionType);
+        SumKey key = new SumKey(userId, productType, transactionType);
+        Double sum = sumCache.get(key, k -> {
+            String sql = "SELECT COALESCE(SUM(t.amount), 0) FROM transactions t JOIN products p ON t.product_id = p.id WHERE t.user_id = ? AND p.type = ? AND t.type = ?";
+            Double result = jdbcTemplate.queryForObject(sql, Double.class, k.userId(), k.productType(), k.transactionType());
+            return result != null ? result : 0.0;
+        });
         return sum != null ? sum : 0.0;
     }
 }
