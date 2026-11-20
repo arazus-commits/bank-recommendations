@@ -11,14 +11,17 @@ public class RecommendationService {
     private final List<RecommendationRuleSet> staticRules;
     private final RuleRepository ruleRepository;
     private final DynamicRuleEngine dynamicRuleEngine;
+    private final RuleStatRepository ruleStatRepository; // <-- Добавили
 
     public RecommendationService(
             List<RecommendationRuleSet> staticRules,
             RuleRepository ruleRepository,
-            DynamicRuleEngine dynamicRuleEngine) {
+            DynamicRuleEngine dynamicRuleEngine,
+            RuleStatRepository ruleStatRepository) {
         this.staticRules = staticRules;
         this.ruleRepository = ruleRepository;
         this.dynamicRuleEngine = dynamicRuleEngine;
+        this.ruleStatRepository = ruleStatRepository;
     }
 
     public List<RecommendationDto> getRecommendations(UUID userId) {
@@ -36,6 +39,8 @@ public class RecommendationService {
                         rule.getProductId(),
                         rule.getProductText()
                 ));
+                // Если правило сработало, увеличиваем счетчик
+                ruleStatRepository.incrementCount(rule.getId()); // <-- Этот метод напишет Максим
             }
         }
 
