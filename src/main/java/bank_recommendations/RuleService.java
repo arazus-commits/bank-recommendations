@@ -8,13 +8,24 @@ import java.util.List;
 public class RuleService {
 
     private final RuleRepository ruleRepository;
+    private final RuleStatisticsRepository statisticsRepository;
 
-    public RuleService(RuleRepository ruleRepository) {
+    public RuleService(RuleRepository ruleRepository,
+                       RuleStatisticsRepository statisticsRepository) {
         this.ruleRepository = ruleRepository;
+        this.statisticsRepository = statisticsRepository;
     }
 
+    @Transactional
     public RuleEntity createRule(RuleEntity ruleEntity) {
-        return ruleRepository.save(ruleEntity);
+        RuleEntity saved = ruleRepository.save(ruleEntity);
+
+        RuleStatistics statistics = new RuleStatistics();
+        statistics.setRuleId(saved.getId());
+        statistics.setCount(0L);
+        statisticsRepository.save(statistics);
+
+        return saved;
     }
 
     public List<RuleEntity> getAllRules() {
@@ -24,5 +35,10 @@ public class RuleService {
     @Transactional
     public void deleteRule(Long id) {
         ruleRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void incrementHitCount(Long ruleId) {
+        statisticsRepository.incrementHitCount(ruleId);
     }
 }

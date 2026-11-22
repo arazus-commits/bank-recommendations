@@ -30,7 +30,7 @@ public class RecommendationService {
 
         List<RuleEntity> dynamicRules = ruleRepository.findAll();
         for (RuleEntity rule : dynamicRules) {
-            if (dynamicRuleEngine.evaluate(rule.getRule(), userId)) {
+            if (dynamicRuleEngine.evaluate(rule, userId)) {
                 recommendations.add(new RecommendationDto(
                         rule.getProductName(),
                         rule.getProductId(),

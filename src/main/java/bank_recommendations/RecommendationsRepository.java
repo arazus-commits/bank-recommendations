@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -80,5 +81,20 @@ public class RecommendationsRepository {
             case "<=" -> deposit <= withdraw;
             default -> false;
         };
+    }
+    public List<String> findUserNames(String namePattern) {
+        String sql = """
+            SELECT first_name || ' ' || last_name
+            FROM users
+            WHERE first_name LIKE ? OR last_name LIKE ?""";
+        return jdbcTemplate.queryForList(sql, String.class, namePattern, namePattern);
+    }
+
+    public UUID findUserIdByName(String fullName) {
+        String sql = """
+            SELECT id FROM users
+            WHERE first_name || ' ' || last_name = ?""";
+        var ids = jdbcTemplate.queryForList(sql, UUID.class, fullName);
+        return ids.isEmpty() ? null : ids.get(0);
     }
 }

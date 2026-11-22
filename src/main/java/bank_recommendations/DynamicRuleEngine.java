@@ -8,16 +8,25 @@ import java.util.UUID;
 public class DynamicRuleEngine {
 
     private final RecommendationsRepository repository;
+    private final RuleService ruleService;
 
-    public DynamicRuleEngine(RecommendationsRepository repository) {
+    public DynamicRuleEngine(RecommendationsRepository repository, RuleService ruleService) {
         this.repository = repository;
+        this.ruleService = ruleService;
     }
 
-    public boolean evaluate(List<RuleQuery> queries, UUID userId) {
+    public boolean evaluate(RuleEntity rule, UUID userId) {
+        List<RuleQuery> queries = rule.getRule();
         if (queries == null || queries.isEmpty()) {
             return false;
         }
-        return queries.stream().allMatch(q -> evaluateQuery(q, userId));
+
+        boolean matched = queries.stream().allMatch(q -> evaluateQuery(q, userId));
+
+        if (matched) {
+            ruleService.incrementHitCount(rule.getId());
+        }
+        return matched;
     }
 
     private boolean evaluateQuery(RuleQuery q, UUID userId) {
