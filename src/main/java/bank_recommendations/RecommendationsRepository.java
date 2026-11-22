@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.UUID;
+import java.util.List;
 
 @Repository
 public class RecommendationsRepository {
@@ -80,5 +81,18 @@ public class RecommendationsRepository {
             case "<=" -> deposit <= withdraw;
             default -> false;
         };
+    }
+
+    public List<String> findUserNames(String namePattern) {
+        String sql = "SELECT DISTINCT first_name || ' ' || last_name FROM users WHERE lower(first_name || ' ' || last_name) LIKE ?";
+        return jdbcTemplate.query(sql, new Object[]{"%" + namePattern.toLowerCase() + "%"}, (rs, rowNum) -> rs.getString(1));
+    }
+
+    public UUID findUserIdByName(String fullName) {
+        String[] parts = fullName.split(" ", 2);
+        if (parts.length < 2) return null;
+        
+        String sql = "SELECT id FROM users WHERE lower(first_name) = ? AND lower(last_name) = ? LIMIT 1";
+        return jdbcTemplate.queryForObject(sql, UUID.class, parts[0].toLowerCase(), parts[1].toLowerCase());
     }
 }
