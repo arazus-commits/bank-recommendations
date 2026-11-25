@@ -25,9 +25,14 @@ public class RecommendationBot extends TelegramLongPollingBot {
     public RecommendationBot(
             RecommendationService recommendationService,
             RecommendationsRepository recommendationsRepository) {
-        super(botToken);
+        super(); // Убрали botToken отсюда, чтобы не было null
         this.recommendationService = recommendationService;
         this.recommendationsRepository = recommendationsRepository;
+    }
+
+    @Override
+    public String getBotToken() {
+        return botToken;
     }
 
     @Override
@@ -51,8 +56,8 @@ public class RecommendationBot extends TelegramLongPollingBot {
 
     private void sendStart(long chatId) {
         String msg = "Привет! Я бот банковских рекомендаций.\n\n" +
-                     "Доступные команды:\n" +
-                     "/recommend <Имя Фамилия> — получить рекомендации.";
+                "Доступные команды:\n" +
+                "/recommend <Имя Фамилия> — получить рекомендации.";
         sendMessage(chatId, msg);
     }
 
