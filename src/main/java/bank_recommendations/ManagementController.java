@@ -12,13 +12,13 @@ import java.util.Map;
 @RequestMapping("/management")
 public class ManagementController {
 
-    private final BuildProperties buildProperties;
+    // Делаем поле необязательным, чтобы приложение запускалось даже без сгенерированной версии
+    @Autowired(required = false)
+    private BuildProperties buildProperties;
+
     private final RecommendationsRepository recommendationsRepository;
 
-    // BuildProperties может быть null, если проект собран не через Maven (например, просто нажатием Run в IDEA)
-    @Autowired(required = false)
-    public ManagementController(BuildProperties buildProperties, RecommendationsRepository recommendationsRepository) {
-        this.buildProperties = buildProperties;
+    public ManagementController(RecommendationsRepository recommendationsRepository) {
         this.recommendationsRepository = recommendationsRepository;
     }
 
@@ -30,9 +30,8 @@ public class ManagementController {
             info.put("name", buildProperties.getArtifact());
             info.put("version", buildProperties.getVersion());
         } else {
-            // Заглушка, если BuildProperties не сгенерировался (запуск через IDEA)
             info.put("name", "bank-recommendations");
-            info.put("version", "unknown");
+            info.put("version", "1.0.0");
         }
 
         return ResponseEntity.ok(info);
@@ -40,7 +39,6 @@ public class ManagementController {
 
     @PostMapping("/clear-caches")
     public ResponseEntity<Void> clearCaches() {
-        // Вызываем метод, который Максим добавит в Repository (Issue #7)
         recommendationsRepository.clearCaches();
         return ResponseEntity.ok().build();
     }
