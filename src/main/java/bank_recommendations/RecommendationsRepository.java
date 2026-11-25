@@ -82,19 +82,12 @@ public class RecommendationsRepository {
             default -> false;
         };
     }
-    public List<String> findUserNames(String namePattern) {
-        String sql = """
-            SELECT first_name || ' ' || last_name
-            FROM users
-            WHERE first_name LIKE ? OR last_name LIKE ?""";
-        return jdbcTemplate.queryForList(sql, String.class, namePattern, namePattern);
+    public List<UUID> findUserIdsByFullName(String fullName) {
+        String sql = "SELECT id FROM users WHERE first_name || ' ' || last_name = ?";
+        return jdbcTemplate.queryForList(sql, UUID.class, fullName);
     }
-
-    public UUID findUserIdByName(String fullName) {
-        String sql = """
-            SELECT id FROM users
-            WHERE first_name || ' ' || last_name = ?""";
-        var ids = jdbcTemplate.queryForList(sql, UUID.class, fullName);
-        return ids.isEmpty() ? null : ids.get(0);
+    public void clearCaches() {
+        countCache.invalidateAll();
+        sumCache.invalidateAll();
     }
 }
