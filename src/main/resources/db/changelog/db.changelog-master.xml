@@ -6,4 +6,5 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
 
     <include file="db/changelog/001-create-rules-table.xml"/>
+    <include file="db/changelog/002-create-rule-statistics.xml"/>
 </databaseChangeLog>

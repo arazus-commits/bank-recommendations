@@ -24,6 +24,9 @@ public class RuleEntity {
     @Column(name = "product_text")
     private String productText;
 
+    @OneToOne(mappedBy = "rule", cascade = CascadeType.ALL, orphanRemoval = true)
+    private RuleStatistics statistics;
+
     // Аннотация JdbcTypeCode(SqlTypes.JSON) говорит Hibernate сохранять этот список как JSONB
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "rule_json")

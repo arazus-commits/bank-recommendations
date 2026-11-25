@@ -102,7 +102,7 @@ class RecommendationServiceTest {
         when(rule1.check(userId)).thenReturn(Optional.empty());
         when(rule2.check(userId)).thenReturn(Optional.empty());
         when(ruleRepository.findAll()).thenReturn(List.of(dynamicRule));
-        when(dynamicRuleEngine.evaluate(anyList(), any(UUID.class))).thenReturn(true);
+        when(dynamicRuleEngine.evaluate(any(RuleEntity.class), any(UUID.class))).thenReturn(true);
 
         List<RecommendationDto> result = recommendationService.getRecommendations(userId);
 
@@ -125,7 +125,7 @@ class RecommendationServiceTest {
         when(rule1.check(userId)).thenReturn(Optional.empty());
         when(rule2.check(userId)).thenReturn(Optional.empty());
         when(ruleRepository.findAll()).thenReturn(List.of(dynamicRule));
-        when(dynamicRuleEngine.evaluate(anyList(), any(UUID.class))).thenReturn(false);
+        when(dynamicRuleEngine.evaluate(any(RuleEntity.class), any(UUID.class))).thenReturn(false);
 
         List<RecommendationDto> result = recommendationService.getRecommendations(userId);
 
