@@ -11,23 +11,28 @@ public class RecommendationService {
     private final List<RecommendationRuleSet> staticRules;
     private final RuleRepository ruleRepository;
     private final DynamicRuleEngine dynamicRuleEngine;
+    private final RuleStatisticsRepository ruleStatisticsRepository; // Исправлено на RuleStatisticsRepository
 
     public RecommendationService(
             List<RecommendationRuleSet> staticRules,
             RuleRepository ruleRepository,
-            DynamicRuleEngine dynamicRuleEngine) {
+            DynamicRuleEngine dynamicRuleEngine,
+            RuleStatisticsRepository ruleStatisticsRepository) { // Исправлено на RuleStatisticsRepository
         this.staticRules = staticRules;
         this.ruleRepository = ruleRepository;
         this.dynamicRuleEngine = dynamicRuleEngine;
+        this.ruleStatisticsRepository = ruleStatisticsRepository;
     }
 
     public List<RecommendationDto> getRecommendations(UUID userId) {
         List<RecommendationDto> recommendations = new ArrayList<>();
 
+        // 1. Проверяем старые фиксированные правила
         for (RecommendationRuleSet rule : staticRules) {
             rule.check(userId).ifPresent(recommendations::add);
         }
 
+        // 2. Проверяем динамические правила из базы данных
         List<RuleEntity> dynamicRules = ruleRepository.findAll();
         for (RuleEntity rule : dynamicRules) {
             if (dynamicRuleEngine.evaluate(rule, userId)) {
@@ -36,6 +41,9 @@ public class RecommendationService {
                         rule.getProductId(),
                         rule.getProductText()
                 ));
+
+                // Если правило сработало, увеличиваем счетчик в базе
+                ruleStatisticsRepository.incrementHitCount(rule.getId());
             }
         }
 
