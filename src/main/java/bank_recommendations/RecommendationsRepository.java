@@ -1,104 +1,108 @@
 package bank_recommendations;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Repository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.time.Duration;
+
 import java.util.List;
 import java.util.UUID;
 
-@Repository
-public class RecommendationsRepository {
+@Component
+public class RecommendationBot extends TelegramLongPollingBot {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final RecommendationService recommendationService;
+    private final RecommendationsRepository recommendationsRepository;
 
-    private record CountKey(UUID userId,String productType){}
-    private record SumKey(UUID userId,String productType,String transactionType){}
+    @Value("${telegram.bot.token}")
+    private String botToken;
 
-    private final Cache<CountKey,Integer> countCache = Caffeine.newBuilder()
-            .maximumSize(10_000)
-            .expireAfterWrite(Duration.ofMinutes(10))
-            .build();
+    @Value("${telegram.bot.username}")
+    private String botUsername;
 
-    private final Cache<SumKey,Double> sumCache = Caffeine.newBuilder()
-            .maximumSize(10_000)
-            .expireAfterWrite(Duration.ofMinutes(10))
-            .build();
-
-    public RecommendationsRepository(@Qualifier("recommendationsJdbcTemplate") JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public RecommendationBot(
+            RecommendationService recommendationService,
+            RecommendationsRepository recommendationsRepository) {
+        super();
+        this.recommendationService = recommendationService;
+        this.recommendationsRepository = recommendationsRepository;
     }
 
-    public int getTransactionCount(UUID userId, String productType) {
-        CountKey key = new CountKey(userId, productType);
-        Integer count = countCache.get(key, k -> {
-            String sql = """
-                    SELECT COUNT(*) FROM transactions t
-                    JOIN products p ON t.product_id = p.id
-                    WHERE t.user_id = ? AND p.type = ?""";
-            Integer result = jdbcTemplate.queryForObject(sql, Integer.class, k.userId(), k.productType());
-            return result != null ? result : 0;
-        });
-        return count != null ? count : 0;
+    @Override
+    public String getBotToken() {
+        return botToken;
     }
 
-    public boolean hasProductType(UUID userId, String productType) {
-        return getTransactionCount(userId, productType) > 0;
+    @Override
+    public String getBotUsername() {
+        return botUsername;
+    }
+
+    @Override
+    public void onUpdateReceived(Update update) {
+        if (!update.hasMessage() || !update.getMessage().hasText()) return;
+
+        String text = update.getMessage().getText();
+        long chatId = update.getMessage().getChatId();
+
+        if (text.equals("/start")) {
+            sendStart(chatId);
+        } else if (text.startsWith("/recommend ")) {
+            handleRecommend(chatId, text.substring("/recommend ".length()).trim());
+        }
+    }
+
+    private void sendStart(long chatId) {
+        String msg = "Привет! Я бот банковских рекомендаций.\n\n" +
+                     "Доступные команды:\n" +
+                     "/recommend <Имя Фамилия> — получить рекомендации.";
+        sendMessage(chatId, msg);
+    }
+
+    private void handleRecommend(long chatId, String userName) {
+        List<String> foundUsers = recommendationsRepository.findUserNames(userName);
+
+        if (foundUsers.size() != 1) {
+            sendMessage(chatId, "Пользователь не найден");
+            return;
         }
 
-    public double getSumTransactionsAmount(UUID userId, String productType, String transactionType) {
-        SumKey key = new SumKey(userId, productType, transactionType);
-        Double sum = sumCache.get(key, k -> {
-            String sql = "SELECT COALESCE(SUM(t.amount), 0) FROM transactions t JOIN products p ON t.product_id = p.id WHERE t.user_id = ? AND p.type = ? AND t.type = ?";
-            Double result = jdbcTemplate.queryForObject(sql, Double.class, k.userId(), k.productType(), k.transactionType());
-            return result != null ? result : 0.0;
-        });
-        return sum != null ? sum : 0.0;
-    }
-    public boolean compareTransactionSum(UUID userId, String productType, String transactionType, String operator, int threshold) {
-        double sum = getSumTransactionsAmount(userId, productType, transactionType);
-        return switch (operator) {
-            case ">" -> sum > threshold;
-            case "<" -> sum < threshold;
-            case "=" -> sum == threshold;
-            case ">=" -> sum >= threshold;
-            case "<=" -> sum <= threshold;
-            default -> false;
-        };
+        String fullName = foundUsers.get(0);
+        UUID userId = recommendationsRepository.findUserIdByName(fullName);
+
+        if (userId == null) {
+            sendMessage(chatId, "Пользователь не найден");
+            return;
+        }
+
+        List<RecommendationDto> recs = recommendationService.getRecommendations(userId);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Здравствуйте ").append(fullName).append("\n\n");
+        sb.append("Новые продукты для вас:\n");
+
+        if (recs.isEmpty()) {
+            sb.append("- Пока нет персональных рекомендаций");
+        } else {
+            for (RecommendationDto r : recs) {
+                sb.append("- ").append(r.getName()).append(": ").append(r.getText()).append("\n");
+            }
+        }
+
+        sendMessage(chatId, sb.toString());
     }
 
-    public boolean compareDepositWithdraw(UUID userId, String productType, String operator) {
-        double deposit = getSumTransactionsAmount(userId, productType, "DEPOSIT");
-        double withdraw = getSumTransactionsAmount(userId, productType, "WITHDRAW");
-        return switch (operator) {
-            case ">" -> deposit > withdraw;
-            case "<" -> deposit < withdraw;
-            case "=" -> deposit == withdraw;
-            case ">=" -> deposit >= withdraw;
-            case "<=" -> deposit <= withdraw;
-            default -> false;
-        };
-    }
-    public List<String> findUserNames(String namePattern) {
-        String sql = """
-            SELECT first_name || ' ' || last_name
-            FROM users
-            WHERE first_name LIKE ? OR last_name LIKE ?""";
-        return jdbcTemplate.queryForList(sql, String.class, namePattern, namePattern);
+    private void sendMessage(long chatId, String text) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText(text);
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            System.err.println("Ошибка Telegram: " + e.getMessage());
+        }
     }
 
-    public UUID findUserIdByName(String fullName) {
-        String sql = """
-            SELECT id FROM users
-            WHERE first_name || ' ' || last_name = ?""";
-        var ids = jdbcTemplate.queryForList(sql, UUID.class, fullName);
-        return ids.isEmpty() ? null : ids.get(0);
-    }
-    public void clearCaches() {
-        countCache.invalidateAll();
-        sumCache.invalidateAll();
-    }
-}
