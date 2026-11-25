@@ -97,10 +97,6 @@ public class RecommendationsRepository {
         var ids = jdbcTemplate.queryForList(sql, UUID.class, fullName);
         return ids.isEmpty() ? null : ids.get(0);
     }
-    public List<UUID> findUserIdsByFullName(String fullName) {
-        String sql = "SELECT id FROM users WHERE first_name || ' ' || last_name = ?";
-        return jdbcTemplate.queryForList(sql, UUID.class, fullName);
-    }
     public void clearCaches() {
         countCache.invalidateAll();
         sumCache.invalidateAll();
