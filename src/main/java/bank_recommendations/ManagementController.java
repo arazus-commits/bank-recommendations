@@ -8,6 +8,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * REST-контроллер для служебного управления и мониторинга сервиса.
+ * <p>
+ * Предоставляет эндпоинты по пути {@code /management} для получения информации о сборке
+ * и принудительного сброса кешей транзакций.
+ */
 @RestController
 @RequestMapping("/management")
 public class ManagementController {
@@ -18,10 +24,22 @@ public class ManagementController {
 
     private final RecommendationsRepository recommendationsRepository;
 
+    /**
+     * Создаёт контроллер управления сервисом.
+     *
+     * @param recommendationsRepository репозиторий транзакций, содержащий управляемый кеш
+     */
     public ManagementController(RecommendationsRepository recommendationsRepository) {
         this.recommendationsRepository = recommendationsRepository;
     }
 
+    /**
+     * Возвращает имя и версию текущего экземпляра приложения.
+     * <p>
+     * Использует {@link BuildProperties}, если информация о сборке доступна; иначе возвращает значения по умолчанию.
+     *
+     * @return {@link ResponseEntity} с картой {@code name} и {@code version}
+     */
     @GetMapping("/info")
     public ResponseEntity<Map<String, String>> getInfo() {
         Map<String, String> info = new HashMap<>();
@@ -37,6 +55,11 @@ public class ManagementController {
         return ResponseEntity.ok(info);
     }
 
+    /**
+     * Принудительно очищает кеши агрегаций и счётчиков транзакций в {@link RecommendationsRepository}.
+     *
+     * @return {@link ResponseEntity} со статусом {@code 200 OK}
+     */
     @PostMapping("/clear-caches")
     public ResponseEntity<Void> clearCaches() {
         recommendationsRepository.clearCaches();
