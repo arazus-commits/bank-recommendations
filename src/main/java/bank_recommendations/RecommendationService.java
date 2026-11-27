@@ -35,6 +35,7 @@ public class RecommendationService {
         // 2. Проверяем динамические правила из базы данных
         List<RuleEntity> dynamicRules = ruleRepository.findAll();
         for (RuleEntity rule : dynamicRules) {
+            // Обрати внимание: передаем сюда rule (сам объект), а не rule.getRule()
             if (dynamicRuleEngine.evaluate(rule, userId)) {
                 recommendations.add(new RecommendationDto(
                         rule.getProductName(),
@@ -42,8 +43,6 @@ public class RecommendationService {
                         rule.getProductText()
                 ));
 
-                // Если правило сработало, увеличиваем счетчик в базе
-                ruleStatisticsRepository.incrementHitCount(rule.getId());
             }
         }
 
